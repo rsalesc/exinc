@@ -26,7 +26,7 @@ class Preprocessor():
                         if abs_next in self.recursion:
                             self.ok = False
                             self.errors.append((
-                            "Found recursion to file %s " \
+                            "Found back-edge to file %s " \
                             "(on line %d of file %s)\n"
                             ) % (next_file, n+1, parent))
                         elif not abs_next in self.seen:

@@ -27,14 +27,17 @@ def entry_point():
             try:
                 in_text = open(in_file, "r").read()
                 paths.append(os.path.abspath(os.path.dirname(in_file)))
-            except Exception:
+            except IOError:
                 sys.stderr.write("Input file could not be read [IO issue]\n")
                 sys.exit(1)
         else:
             sys.stderr.write("Input file could not be found\n")
             sys.exit(1)
     else:
-        in_text = sys.stdin.read()
+        try:
+            in_text = sys.stdin.read()
+        except KeyboardInterrupt:
+            sys.exit(0)
 
     prep = Preprocessor(paths)
     prep.expand(in_text,
@@ -55,7 +58,7 @@ def entry_point():
             else:
                 try:
                     open(out_file, "w").write(prep.get_result())
-                except Exception:
+                except IOError:
                     sys.stderr.write("Output file could not be written [IO issue]\n")
                     sys.exit(1)
 
