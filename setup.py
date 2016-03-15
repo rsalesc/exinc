@@ -9,13 +9,13 @@ except IOError:
 
 setup(
     name="cp-expand-includes",
-    version="0.1.1",
+    version="0.2.0",
     description="Expand includes for competitive programming",
     license="MIT",
     author="Roberto Sales",
-    packages=['expand'],
+    packages=['exinc'],
     entry_points = {
-        "console_scripts": ['exinc = expand.tool:entry_point']
+        "console_scripts": ['exinc = exinc.tool:entry_point']
     },
     install_requires=["argparse"],
     long_description=LONG_DESCRIPTION,
