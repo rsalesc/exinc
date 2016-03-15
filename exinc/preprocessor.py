@@ -43,22 +43,22 @@ class Preprocessor():
                                     "File %s could not be read [IO issue] "
                                     "(on line %d of file %s)\n"
                                 ) % (next_file, n+1, parent))
-                                break
+                        break
 
-                                if not found:
-                                    self.ok = False
-                                    self.errors.append((
-                                        "File %s could not be found "
-                                        "(on line %d of file %s)\n"
-                                    ) % (next_file, n+1, parent))
-                                else:
-                                    self.result += "%s\n" % line
+                if not found:
+                    self.ok = False
+                    self.errors.append((
+                            "File %s could not be found "
+                            "(on line %d of file %s)\n"
+                        ) % (next_file, n+1, parent))
+            else:
+                self.result += "%s\n" % line
 
-                                    def has_errors(self):
-                                        return not self.ok
+    def has_errors(self):
+        return not self.ok
 
-                                        def get_errors(self):
-                                            return self.errors
+    def get_errors(self):
+        return self.errors
 
-                                            def get_result(self):
-                                                return self.result
+    def get_result(self):
+        return self.result

@@ -11,7 +11,8 @@ from preprocessor import Preprocessor
 DEFAULT_COMPILER = 'g++ -xc++'
 DEFAULT_FLAGS = ['-std=c++11']
 DEFAULT_PATHS = [
-    "/home/rsalesc/ownCloud/Programming Training/Library/PlugAndPlay"
+    "/home/rsalesc/ownCloud/Programming Training/Library/PlugAndPlay",
+    "/home/rsalesc/Lib"
 ]
 
 # PARSER CONFIG
@@ -24,10 +25,17 @@ parser.add_argument("-o", "--output",
                     help="provide output cpp file")
 parser.add_argument("-p", "--path",
                     nargs="*",
+                    default=[],
                     help="provide include paths to expand (abs)")
 parser.add_argument("-c", "--compile",
-                    action="store_true",
-                    help="generate a compiled cpp executable")
+                    nargs='?',
+                    const="a.out",
+                    default=False,
+                    help="generate a compiled cpp executable (a.out)")
+parser.add_argument("--flags",
+                    metavar='compiler-flags',
+                    default="",
+                    help="compiler flags to be appended to config flags")
 args = parser.parse_args()
 
 # NAMED TUPLES AND CLASSES
@@ -117,14 +125,14 @@ def entry_point():
                   filename=in_file if args.input else "root_file")
 
     if(args.compile):
-        res = exinc.compile()
+        res = exinc.compile(DEFAULT_FLAGS + shlex.split(args.flags),
+                            args.compile)
     else:
         res = exinc.run()
 
     if res.has_errors:
-        for line in res.result:
-            sys.stderr.write("%s\n" % line)
-            sys.exit(1)
+        sys.stderr.write(res.result)
+        sys.exit(1)
     else:
         if not args.output:
             sys.stdout.write(res.result)
