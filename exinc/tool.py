@@ -1,19 +1,39 @@
+"""exinc main file."""
 import argparse
 import sys
 import os
 import shlex
 import subprocess
 import tempfile
+import imp
+import default_config
 from collections import namedtuple
 from preprocessor import Preprocessor
+from pkg_resources import resource_string
 
-# CONSTANTS
-DEFAULT_COMPILER = 'g++ -xc++'
-DEFAULT_FLAGS = ['-std=c++11']
-DEFAULT_PATHS = [
-    "/home/rsalesc/ownCloud/Programming Training/Library/PlugAndPlay",
-    "/home/rsalesc/Lib"
-]
+# APPLICATION CONFIG
+CFG_PATH = os.path.join(os.path.expanduser("~"), ".exinc")
+if not os.path.isfile(CFG_PATH):
+    sys.stderr.write("""Your configuration file was not found.
+                        A new one will be created at %s""" % CFG_PATH)
+    try:
+        open(CFG_PATH, "w") \
+            .write(resource_string(__name__, "default_config.py"))
+    except IOError:
+        sys.stderr.write("Your new configuration file could not be created.\n")
+        sys.exit(1)
+
+try:
+    cfg = imp.load_source("cfg__as", CFG_PATH)
+except RuntimeError:
+    sys.stderr.write("Your config file could not be loaded (~/.exinc)\n")
+    sys.exit(1)
+
+if cfg.RELEASE != default_config.RELEASE:
+    sys.stderr.write("""Your configuration file is out-to-date.
+                Rename it and re-run exinc. An updated config will be created.
+                Then you can merge your old configs with the new one.""")
+    sys.exit(1)
 
 # PARSER CONFIG
 parser = argparse.ArgumentParser()
@@ -50,7 +70,7 @@ class Exinc():
         if "paths" not in opts:
             opts["paths"] = []
         self.paths = [x for x in opts["paths"] if os.path.isdir(x)]
-        self.paths += DEFAULT_PATHS
+        self.paths += cfg.DEFAULT_PATHS
 
     def run(self):
         prep = Preprocessor(self.paths)
@@ -59,7 +79,9 @@ class Exinc():
                            prep.get_errors() if prep.has_errors()
                            else prep.get_result())
 
-    def compile(self, flags=DEFAULT_FLAGS, output_path=None, cwd=os.curdir):
+    def compile(self, flags=cfg.DEFAULT_FLAGS,
+                output_path=None, cwd=os.curdir):
+
         if isinstance(flags, basestring):
             flags = shlex.split(flags)
 
@@ -67,7 +89,7 @@ class Exinc():
             output_path = os.path.join(tempfile.gettempdir(), "exinc_out")
 
         # PRE-COMPILATION STEP
-        params = shlex.split(DEFAULT_COMPILER) + ["-"] + flags
+        params = shlex.split(cfg.DEFAULT_COMPILER) + ["-"] + flags
         params += [] if output_path is None else ["-o", output_path]
         pre_params = params
         for path in self.paths:
@@ -100,6 +122,7 @@ class Exinc():
 
 
 def entry_point():
+    print cfg.DEFAULT_FLAGS
     paths = [] if not args.path else args.path
     in_text = ""
     in_file = ""
@@ -125,7 +148,7 @@ def entry_point():
                   filename=in_file if args.input else "root_file")
 
     if(args.compile):
-        res = exinc.compile(DEFAULT_FLAGS + shlex.split(args.flags),
+        res = exinc.compile(cfg.DEFAULT_FLAGS + shlex.split(args.flags),
                             args.compile)
     else:
         res = exinc.run()

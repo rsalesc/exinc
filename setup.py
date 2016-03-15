@@ -14,8 +14,11 @@ setup(
     license="MIT",
     author="Roberto Sales",
     packages=['exinc'],
-    entry_points = {
+    entry_points={
         "console_scripts": ['exinc = exinc.tool:entry_point']
+    },
+    package_data={
+        "": ['default_config.py']
     },
     install_requires=["argparse"],
     long_description=LONG_DESCRIPTION,
