@@ -10,49 +10,52 @@ from preprocessor import Preprocessor
 # CONSTANTS
 DEFAULT_COMPILER = 'g++ -xc++'
 DEFAULT_FLAGS = ['-std=c++11']
-DEFAULT_PATHS = ["/home/rsalesc/ownCloud/Programming Training/Library/PlugAndPlay"]
+DEFAULT_PATHS = [
+    "/home/rsalesc/ownCloud/Programming Training/Library/PlugAndPlay"
+]
 
 # PARSER CONFIG
 parser = argparse.ArgumentParser()
 parser.add_argument("-i", "--input",
-    metavar="in-file",
-    help="provide input cpp file")
+                    metavar="in-file",
+                    help="provide input cpp file")
 parser.add_argument("-o", "--output",
-    metavar="out-file",
-    help="provide output cpp file")
+                    metavar="out-file",
+                    help="provide output cpp file")
 parser.add_argument("-p", "--path",
-    nargs="*",
-    help="provide include paths to expand (abs)")
+                    nargs="*",
+                    help="provide include paths to expand (abs)")
 parser.add_argument("-c", "--compile",
-    action="store_true",
-    help="generate a compiled cpp executable")
+                    action="store_true",
+                    help="generate a compiled cpp executable")
 args = parser.parse_args()
 
-# NAMED TUPLES
+# NAMED TUPLES AND CLASSES
 ExincResult = namedtuple('ExincResult', 'has_errors result')
 
-# CLASSES
+
 class Exinc():
     def __init__(self, **kwargs):
         opts = kwargs
         self.in_text = opts["input"]
         self.in_file = opts["filename"] if "filename" in opts else "root_file"
-        if not "paths" in opts:
+        if "paths" not in opts:
             opts["paths"] = []
-        self.paths = [x for x in opts["paths"] if os.path.isdir(x)] # add config paths
+        self.paths = [x for x in opts["paths"] if os.path.isdir(x)]
         self.paths += DEFAULT_PATHS
 
     def run(self):
         prep = Preprocessor(self.paths)
         prep.expand(self.in_text, os.path.basename(self.in_file))
         return ExincResult(prep.has_errors(),
-            prep.get_errors() if prep.has_errors() else prep.get_result())
+                           prep.get_errors() if prep.has_errors()
+                           else prep.get_result())
 
-    def compile(self, flags = DEFAULT_FLAGS, output_path = None, cwd = os.curdir):
+    def compile(self, flags=DEFAULT_FLAGS, output_path=None, cwd=os.curdir):
         if isinstance(flags, basestring):
             flags = shlex.split(flags)
 
-        if output_path == False:
+        if output_path is False:
             output_path = os.path.join(tempfile.gettempdir(), "exinc_out")
 
         # PRE-COMPILATION STEP
@@ -63,12 +66,12 @@ class Exinc():
             pre_params += ['-I', path]
 
         p = subprocess.Popen(pre_params, cwd=cwd, stdin=subprocess.PIPE,
-                            stderr=subprocess.PIPE)
+                             stderr=subprocess.PIPE)
         (_, perror) = p.communicate(self.in_text)
 
         if p.returncode != 0:
             return ExincResult(True,
-                "Errors in pre-compilation step.\n" + perror)
+                               "Errors in pre-compilation step.\n" + perror)
 
         prep = self.run()
         if prep.has_errors:
@@ -76,16 +79,18 @@ class Exinc():
 
         # COMPILATION STEP
         p = subprocess.Popen(params, cwd=cwd, stdin=subprocess.PIPE,
-                            stderr=subprocess.PIPE)
+                             stderr=subprocess.PIPE)
         (_, perror) = p.communicate(prep.result)
 
         if p.returncode != 0:
             return ExincResult(True,
-                "Errors in expanded compilation step.\n" + perror)
+                               "Error in expanded compilation step\n" + perror)
 
         return prep
 
 # MAIN APPLICATION
+
+
 def entry_point():
     paths = [] if not args.path else args.path
     in_text = ""
@@ -108,8 +113,9 @@ def entry_point():
         except KeyboardInterrupt:
             sys.exit(0)
 
+    exinc = Exinc(paths=paths, input=in_text,
+                  filename=in_file if args.input else "root_file")
 
-    exinc = Exinc(paths=paths, input=in_text, filename=in_file if args.input else "root_file")
     if(args.compile):
         res = exinc.compile()
     else:
@@ -131,7 +137,7 @@ def entry_point():
                 try:
                     open(out_file, "w").write(res.result)
                 except IOError:
-                    sys.stderr.write("Output file could not be written [IO issue]\n")
+                    sys.stderr.write("Output file could not be written\n")
                     sys.exit(1)
 
     sys.exit(0)
