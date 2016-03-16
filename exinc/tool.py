@@ -15,7 +15,8 @@ from pkg_resources import resource_string
 CFG_PATH = os.path.join(os.path.expanduser("~"), ".exinc")
 if not os.path.isfile(CFG_PATH):
     sys.stderr.write("""Your configuration file was not found.
-                        A new one will be created at %s""" % CFG_PATH)
+                        A new one will be created at %s
+                        """ % CFG_PATH)
     try:
         open(CFG_PATH, "w") \
             .write(resource_string(__name__, "default_config.py"))
@@ -24,16 +25,20 @@ if not os.path.isfile(CFG_PATH):
         sys.exit(1)
 
 try:
-    cfg = imp.load_source("cfg__as", CFG_PATH)
-except RuntimeError:
+    _m = imp.load_source("cfg", CFG_PATH)
+except RuntimeError, ImportError:
     sys.stderr.write("Your config file could not be loaded (~/.exinc)\n")
+    raise
     sys.exit(1)
 
+import cfg
 if cfg.RELEASE != default_config.RELEASE:
     sys.stderr.write("""Your configuration file is out-to-date.
                 Rename it and re-run exinc. An updated config will be created.
-                Then you can merge your old configs with the new one.""")
+                Then you can merge your old configs with the new one.
+                """)
     sys.exit(1)
+
 
 # PARSER CONFIG
 parser = argparse.ArgumentParser()
@@ -89,7 +94,7 @@ class Exinc():
             output_path = os.path.join(tempfile.gettempdir(), "exinc_out")
 
         # PRE-COMPILATION STEP
-        params = shlex.split(cfg.DEFAULT_COMPILER) + ["-"] + flags
+        params = cfg.DEFAULT_COMPILER + ["-"] + flags
         params += [] if output_path is None else ["-o", output_path]
         pre_params = params
         for path in self.paths:
@@ -122,7 +127,6 @@ class Exinc():
 
 
 def entry_point():
-    print cfg.DEFAULT_FLAGS
     paths = [] if not args.path else args.path
     in_text = ""
     in_file = ""

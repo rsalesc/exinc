@@ -58,7 +58,7 @@ class Preprocessor():
         return not self.ok
 
     def get_errors(self):
-        return self.errors
+        return '\n'.join(self.errors)
 
     def get_result(self):
         return self.result
