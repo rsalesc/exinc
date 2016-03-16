@@ -15,7 +15,8 @@ from pkg_resources import resource_string
 CFG_PATH = os.path.join(os.path.expanduser("~"), ".exinc")
 if not os.path.isfile(CFG_PATH):
     sys.stderr.write("""Your configuration file was not found.
-                        A new one will be created at %s""" % CFG_PATH)
+                        A new one will be created at %s
+                        """ % CFG_PATH)
     try:
         open(CFG_PATH, "w") \
             .write(resource_string(__name__, "default_config.py"))
@@ -32,7 +33,8 @@ except RuntimeError:
 if cfg.RELEASE != default_config.RELEASE:
     sys.stderr.write("""Your configuration file is out-to-date.
                 Rename it and re-run exinc. An updated config will be created.
-                Then you can merge your old configs with the new one.""")
+                Then you can merge your old configs with the new one.
+                """)
     sys.exit(1)
 
 # PARSER CONFIG
