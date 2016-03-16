@@ -46,8 +46,13 @@ parser.add_argument("-i", "--input",
                     metavar="in-file",
                     help="provide input cpp file")
 parser.add_argument("-o", "--output",
-                    metavar="out-file",
-                    help="provide output cpp file")
+                    nargs="?",
+                    const=True,
+                    default=False,
+                    help="""provide output cpp file
+                    if set to empty, ${input}.pre.cpp
+                    will be generated
+                    """)
 parser.add_argument("-p", "--path",
                     nargs="*",
                     default=[],
@@ -130,6 +135,13 @@ def entry_point():
     paths = [] if not args.path else args.path
     in_text = ""
     in_file = ""
+
+    if args.output is True and not args.input:
+        sys.stderr.write("""An input file must be provided if
+                        an empty output file is given.
+                        """)
+        sys.exit(1)
+
     if args.input:
         in_file = args.input
         if os.path.isfile(in_file):
@@ -164,9 +176,19 @@ def entry_point():
         if not args.output:
             sys.stdout.write(res.result)
         else:
-            out_file = os.path.abspath(args.output)
+            if args.output is True:
+                in_basename = os.path.basename(in_file)
+                out_basename = in_basename.split(".")[:-1] + \
+                            ['pre'] + in_basename.split(".")[-1:]
+                out_basename = '.'.join(out_basename)
+                out_file = os.path.join(os.path.dirname(in_file),
+                            out_basename)
+            else:
+                out_file = args.output
+            out_file = os.path.abspath(out_file)
+            
             if not os.path.isdir(os.path.dirname(out_file)):
-                sys.stderr.write("Output file was not found\n")
+                sys.stderr.write("Output directory was not found\n")
                 sys.exit(1)
             else:
                 try:
