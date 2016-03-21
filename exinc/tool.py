@@ -29,7 +29,6 @@ try:
 except RuntimeError, ImportError:
     sys.stderr.write("Your config file could not be loaded (~/.exinc)\n")
     raise
-    sys.exit(1)
 
 import cfg
 if cfg.RELEASE != default_config.RELEASE:
@@ -66,6 +65,9 @@ parser.add_argument("--flags",
                     metavar='compiler-flags',
                     default="",
                     help="compiler flags to be appended to config flags")
+parser.add_argument("-s", "--supress",
+                    action='store_true',
+                    help="supress file output")
 args = parser.parse_args()
 
 # NAMED TUPLES AND CLASSES
@@ -173,9 +175,9 @@ def entry_point():
         sys.stderr.write(res.result)
         sys.exit(1)
     else:
-        if not args.output:
+        if not args.output and not args.supress:
             sys.stdout.write(res.result)
-        else:
+        elif not args.supress:
             if args.output is True:
                 in_basename = os.path.basename(in_file)
                 out_basename = in_basename.split(".")[:-1] + \
@@ -186,7 +188,7 @@ def entry_point():
             else:
                 out_file = args.output
             out_file = os.path.abspath(out_file)
-            
+
             if not os.path.isdir(os.path.dirname(out_file)):
                 sys.stderr.write("Output directory was not found\n")
                 sys.exit(1)

@@ -9,7 +9,7 @@ except IOError:
 
 setup(
     name="cp-expand-includes",
-    version="0.2.0",
+    version="0.2.1",
     description="Expand includes for competitive programming",
     license="MIT",
     author="Roberto Sales",
