@@ -1,1 +1,1 @@
-from tool import Exinc, DEFAULT_COMPILER, DEFAULT_FLAGS, DEFAULT_PATHS
+from tool import Exinc

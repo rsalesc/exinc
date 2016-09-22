@@ -15,7 +15,8 @@ from pkg_resources import resource_string
 CFG_PATH = os.path.join(os.path.expanduser("~"), ".exinc")
 if not os.path.isfile(CFG_PATH):
     sys.stderr.write("""Your configuration file was not found.
-                        A new one will be created at %s""" % CFG_PATH)
+                        A new one will be created at %s
+                        """ % CFG_PATH)
     try:
         open(CFG_PATH, "w") \
             .write(resource_string(__name__, "default_config.py"))
@@ -24,16 +25,20 @@ if not os.path.isfile(CFG_PATH):
         sys.exit(1)
 
 try:
-    cfg = imp.load_source("cfg__as", CFG_PATH)
-except RuntimeError:
+    _m = imp.load_source("cfg", CFG_PATH)
+except RuntimeError, ImportError:
     sys.stderr.write("Your config file could not be loaded (~/.exinc)\n")
+    raise
     sys.exit(1)
 
+import cfg
 if cfg.RELEASE != default_config.RELEASE:
     sys.stderr.write("""Your configuration file is out-to-date.
                 Rename it and re-run exinc. An updated config will be created.
-                Then you can merge your old configs with the new one.""")
+                Then you can merge your old configs with the new one.
+                """)
     sys.exit(1)
+
 
 # PARSER CONFIG
 parser = argparse.ArgumentParser()
@@ -41,8 +46,13 @@ parser.add_argument("-i", "--input",
                     metavar="in-file",
                     help="provide input cpp file")
 parser.add_argument("-o", "--output",
-                    metavar="out-file",
-                    help="provide output cpp file")
+                    nargs="?",
+                    const=True,
+                    default=False,
+                    help="""provide output cpp file
+                    if set to empty, ${input}.pre.cpp
+                    will be generated
+                    """)
 parser.add_argument("-p", "--path",
                     nargs="*",
                     default=[],
@@ -89,7 +99,7 @@ class Exinc():
             output_path = os.path.join(tempfile.gettempdir(), "exinc_out")
 
         # PRE-COMPILATION STEP
-        params = shlex.split(cfg.DEFAULT_COMPILER) + ["-"] + flags
+        params = cfg.DEFAULT_COMPILER + ["-"] + flags
         params += [] if output_path is None else ["-o", output_path]
         pre_params = params
         for path in self.paths:
@@ -122,10 +132,16 @@ class Exinc():
 
 
 def entry_point():
-    print cfg.DEFAULT_FLAGS
     paths = [] if not args.path else args.path
     in_text = ""
     in_file = ""
+
+    if args.output is True and not args.input:
+        sys.stderr.write("""An input file must be provided if
+                        an empty output file is given.
+                        """)
+        sys.exit(1)
+
     if args.input:
         in_file = args.input
         if os.path.isfile(in_file):
@@ -160,9 +176,19 @@ def entry_point():
         if not args.output:
             sys.stdout.write(res.result)
         else:
-            out_file = os.path.abspath(args.output)
+            if args.output is True:
+                in_basename = os.path.basename(in_file)
+                out_basename = in_basename.split(".")[:-1] + \
+                            ['pre'] + in_basename.split(".")[-1:]
+                out_basename = '.'.join(out_basename)
+                out_file = os.path.join(os.path.dirname(in_file),
+                            out_basename)
+            else:
+                out_file = args.output
+            out_file = os.path.abspath(out_file)
+            
             if not os.path.isdir(os.path.dirname(out_file)):
-                sys.stderr.write("Output file was not found\n")
+                sys.stderr.write("Output directory was not found\n")
                 sys.exit(1)
             else:
                 try:

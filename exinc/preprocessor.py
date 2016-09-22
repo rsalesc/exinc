@@ -35,6 +35,7 @@ class Preprocessor():
                                 next_text = open(abs_next, "r").read()
                                 self.seen[abs_next] = 1
                                 self.recursion[abs_next] = 1
+                                self.paths.append(os.path.dirname(abs_next))
                                 self.expand(next_text, next_file)
                                 self.recursion.pop(abs_next)
                             except IOError:
@@ -58,7 +59,7 @@ class Preprocessor():
         return not self.ok
 
     def get_errors(self):
-        return self.errors
+        return '\n'.join(self.errors)
 
     def get_result(self):
         return self.result
