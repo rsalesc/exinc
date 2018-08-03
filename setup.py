@@ -20,7 +20,7 @@ setup(
     package_data={
         "": ['default_config.py']
     },
-    install_requires=["argparse"],
+    install_requires=["argparse", "backports.tempfile"],
     long_description=LONG_DESCRIPTION,
     classifiers=[
         "Programming Language :: Python",

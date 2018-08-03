@@ -13,3 +13,7 @@ DEFAULT_FLAGS = ['-std=c++11']
 # put here your default compilation line in shlex array form
 # DO NOT CHANGE THIS VALUE IF YOU DONT KNOW ITS GONNA WORK XD
 DEFAULT_COMPILER = ['g++', '-xc++']
+
+# put here config which is specifically related to Caide
+CMD_PATH = ""
+CLANG_INCLUDES = ""
