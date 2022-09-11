@@ -1,1 +1,1 @@
-from tool import Exinc
+from .tool import Exinc

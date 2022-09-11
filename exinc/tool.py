@@ -8,10 +8,10 @@ import tempfile
 import warnings
 warnings.filterwarnings("ignore", category=DeprecationWarning) 
 import imp
-import default_config
+from . import default_config
 from collections import namedtuple
-from preprocessor import Preprocessor
-from optimizer import CaidePreprocessor
+from .preprocessor import Preprocessor
+from .optimizer import CaidePreprocessor
 from pkg_resources import resource_string
 
 # APPLICATION CONFIG
@@ -133,7 +133,7 @@ class Exinc():
     def compile(self, flags=cfg.DEFAULT_FLAGS, output_path=None,
                 cwd=os.curdir):
 
-        if isinstance(flags, basestring):
+        if isinstance(flags, str):
             flags = shlex.split(flags)
 
         if output_path is False:
@@ -151,7 +151,7 @@ class Exinc():
                 cwd=cwd,
                 stdin=subprocess.PIPE,
                 stderr=subprocess.PIPE)
-            (_, perror) = p.communicate(self.in_text)
+            (_, perror) = p.communicate(self.in_text.encode("utf-8"))
 
             if p.returncode != 0:
                 return ExincResult(
@@ -165,7 +165,7 @@ class Exinc():
         params += [] if output_path is None else ["-o", output_path]
         p = subprocess.Popen(
             params, cwd=cwd, stdin=subprocess.PIPE, stderr=subprocess.PIPE)
-        (_, perror) = p.communicate(prep.result)
+        (_, perror) = p.communicate(prep.result.encode("utf-8"))
 
         if p.returncode != 0:
             return ExincResult(True,
