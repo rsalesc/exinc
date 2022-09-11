@@ -5,6 +5,8 @@ import os
 import shlex
 import subprocess
 import tempfile
+import warnings
+warnings.filterwarnings("ignore", category=DeprecationWarning) 
 import imp
 import default_config
 from collections import namedtuple
@@ -20,14 +22,14 @@ if not os.path.isfile(CFG_PATH):
                         """ % CFG_PATH)
     try:
         open(CFG_PATH, "w") \
-            .write(resource_string(__name__, "default_config.py"))
+            .write(resource_string(__name__, "default_config.py").decode("utf-8"))
     except IOError:
         sys.stderr.write("Your new configuration file could not be created.\n")
         sys.exit(1)
 
 try:
     _m = imp.load_source("cfg", CFG_PATH)
-except RuntimeError, ImportError:
+except (RuntimeError, ImportError):
     sys.stderr.write("Your config file could not be loaded (~/.exinc)\n")
     raise
     sys.exit(1)
