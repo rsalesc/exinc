@@ -155,7 +155,7 @@ class Exinc():
 
             if p.returncode != 0:
                 return ExincResult(
-                    True, "Errors in pre-compilation step.\n" + perror)
+                    True, "Errors in pre-compilation step.\n" + perror.decode("utf-8"))
 
         prep = self.run()
         if prep.has_errors:
