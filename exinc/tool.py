@@ -136,10 +136,16 @@ class Exinc():
         if isinstance(flags, str):
             flags = shlex.split(flags)
 
-        if output_path is False:
-            output_path = os.path.join(tempfile.gettempdir(), "exinc_out")
+        temp_dir = tempfile.gettempdir()
 
-        params = cfg.DEFAULT_COMPILER + ["-"] + flags
+        if output_path is False:
+            output_path = os.path.join(temp_dir, "exinc_out")
+        tmp_in_path = os.path.join(temp_dir, "exinc_in.cpp")
+
+        if not self.has_filename():
+            open(tmp_in_path, "w").write(self.in_text)
+
+        params = cfg.DEFAULT_COMPILER + flags
         if self.should_precompile():
             # PRE-COMPILATION STEP
             pre_params = params
@@ -147,11 +153,11 @@ class Exinc():
                 pre_params += ['-I', path]
 
             p = subprocess.Popen(
-                pre_params,
+                pre_params + [self.in_file if self.has_filename() else tmp_in_path],
                 cwd=cwd,
                 stdin=subprocess.PIPE,
                 stderr=subprocess.PIPE)
-            (_, perror) = p.communicate(self.in_text.encode("utf-8"))
+            (_, perror) = p.communicate()
 
             if p.returncode != 0:
                 return ExincResult(
@@ -160,16 +166,17 @@ class Exinc():
         prep = self.run()
         if prep.has_errors:
             return prep
-
+        
+        open(tmp_in_path, "w").write(prep.result)
         # COMPILATION STEP
         params += [] if output_path is None else ["-o", output_path]
         p = subprocess.Popen(
-            params, cwd=cwd, stdin=subprocess.PIPE, stderr=subprocess.PIPE)
-        (_, perror) = p.communicate(prep.result.encode("utf-8"))
+            params + [tmp_in_path], cwd=cwd, stdin=subprocess.PIPE, stderr=subprocess.PIPE)
+        (_, perror) = p.communicate()
 
         if p.returncode != 0:
             return ExincResult(True,
-                               "Error in expanded compilation step\n" + perror)
+                               "Error in expanded compilation step\n" + perror.decode('utf-8'))
 
         return prep
 

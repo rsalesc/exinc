@@ -8,11 +8,14 @@ DEFAULT_PATHS = []
 # put here your default compilation flags in shlex array form
 # additional flags provided by command line/Exinc constructor
 # will be merged with this
-DEFAULT_FLAGS = ['-std=c++17']
+DEFAULT_FLAGS = [
+    "-std=c++17",
+    "-fdiagnostics-color=always",
+]
 
 # put here your default compilation line in shlex array form
 # DO NOT CHANGE THIS VALUE IF YOU DONT KNOW ITS GONNA WORK XD
-DEFAULT_COMPILER = ['g++', '-xc++']
+DEFAULT_COMPILER = ["g++"]
 
 # put here config which is specifically related to Caide
 CMD_PATH = ""
