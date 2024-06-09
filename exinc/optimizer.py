@@ -1,4 +1,4 @@
-from backports import tempfile
+import tempfile
 import os
 import subprocess
 import shlex

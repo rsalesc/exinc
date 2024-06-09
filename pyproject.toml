@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "exinc"
-version = "1.0.1"
+version = "1.0.2"
 description = "Tool to expand C++ includes targeting competitive programmers."
 authors = ["Roberto Sales <rsalescaldeira@gmail.com>"]
 readme = "README.md"
