@@ -9,7 +9,7 @@ readme = "README.md"
 python = "^3.10"
 
 [tool.poetry.scripts]
-cfk = "exinc.tool:entry_point"
+exinc = "exinc.tool:entry_point"
 
 [build-system]
 requires = ["poetry-core"]
