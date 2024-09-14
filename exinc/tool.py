@@ -1,4 +1,5 @@
 """exinc main file."""
+
 import argparse
 import sys
 import os
@@ -6,35 +7,63 @@ import shlex
 import subprocess
 import tempfile
 import warnings
-warnings.filterwarnings("ignore", category=DeprecationWarning) 
-import imp
+
+warnings.filterwarnings("ignore", category=DeprecationWarning)
 from . import default_config
 from collections import namedtuple
 from .preprocessor import Preprocessor
 from .optimizer import CaidePreprocessor
-from pkg_resources import resource_string
+
+import pathlib
+import importlib
+import importlib.resources
+
+if sys.version_info >= (3, 12):
+    import importlib.util
+    import importlib.machinery
+
+    def load_source(modname, filename):
+        loader = importlib.machinery.SourceFileLoader(modname, filename)
+        spec = importlib.util.spec_from_file_location(modname, filename, loader=loader)
+        assert spec is not None
+        module = importlib.util.module_from_spec(spec)
+        # The module is always executed and not cached in sys.modules.
+        # Uncomment the following line to cache the module.
+        # sys.modules[module.__name__] = module
+        loader.exec_module(module)
+        return module
+else:
+    import imp
+
+    load_source = imp.load_source
+
+
+def get_resource_path(name: str) -> pathlib.Path:
+    with importlib.resources.as_file(importlib.resources.files("exinc") / name) as file:
+        return file
+
 
 # APPLICATION CONFIG
 CFG_PATH = os.path.join(os.path.expanduser("~"), ".exinc")
 if not os.path.isfile(CFG_PATH):
-    sys.stderr.write("""Your configuration file was not found.
+    sys.stderr.write(
+        """Your configuration file was not found.
                         A new one will be created at %s
-                        """ % CFG_PATH)
+                        """
+        % CFG_PATH
+    )
     try:
-        open(CFG_PATH, "w") \
-            .write(resource_string(__name__, "default_config.py").decode("utf-8"))
+        open(CFG_PATH, "w").write(get_resource_path("default_config.py").read_text())
     except IOError:
         sys.stderr.write("Your new configuration file could not be created.\n")
         sys.exit(1)
 
 try:
-    _m = imp.load_source("cfg", CFG_PATH)
+    cfg = load_source("cfg", CFG_PATH)
 except (RuntimeError, ImportError):
     sys.stderr.write("Your config file could not be loaded (~/.exinc)\n")
     raise
-    sys.exit(1)
 
-import cfg
 if cfg.RELEASE != default_config.RELEASE:
     sys.stderr.write("""Your configuration file is out-to-date.
                 Rename it and re-run exinc. An updated config will be created.
@@ -44,8 +73,7 @@ if cfg.RELEASE != default_config.RELEASE:
 
 # PARSER CONFIG
 parser = argparse.ArgumentParser()
-parser.add_argument(
-    "-i", "--input", metavar="in-file", help="provide input cpp file")
+parser.add_argument("-i", "--input", metavar="in-file", help="provide input cpp file")
 parser.add_argument(
     "-o",
     "--output",
@@ -55,42 +83,39 @@ parser.add_argument(
     help="""provide output cpp file
                     if set to empty, ${input}.pre.cpp
                     will be generated
-                    """)
+                    """,
+)
 parser.add_argument(
-    "-p",
-    "--path",
-    nargs="*",
-    default=[],
-    help="provide include paths to expand (abs)")
+    "-p", "--path", nargs="*", default=[], help="provide include paths to expand (abs)"
+)
 parser.add_argument(
     "-c",
     "--compile",
-    nargs='?',
+    nargs="?",
     const="a.out",
     default=False,
-    help="generate a compiled cpp executable (a.out)")
+    help="generate a compiled cpp executable (a.out)",
+)
 parser.add_argument(
     "--caide",
     default=False,
     action="store_true",
-    help="use caide for preprocessing instead of default inliner")
+    help="use caide for preprocessing instead of default inliner",
+)
 parser.add_argument(
     "--flags",
-    metavar='compiler-flags',
+    metavar="compiler-flags",
     default="",
-    help="compiler flags to be appended to config flags")
+    help="compiler flags to be appended to config flags",
+)
 args = parser.parse_args()
 
 # NAMED TUPLES AND CLASSES
-ExincResult = namedtuple('ExincResult', 'has_errors result')
+ExincResult = namedtuple("ExincResult", "has_errors result")
 
 
-class Exinc():
-    def __init__(self,
-                 input,
-                 filename="root_file",
-                 paths=[],
-                 preprocessor="inliner"):
+class Exinc:
+    def __init__(self, input, filename="root_file", paths=[], preprocessor="inliner"):
         assert preprocessor is not None
         self.in_text = input
         self.in_file = filename
@@ -117,22 +142,22 @@ class Exinc():
                 cfg.CLANG_INCLUDES,
                 paths=self.paths,
                 clang_options=cfg.DEFAULT_FLAGS,
-                cwd=os.path.dirname(self.in_file)
-                if self.has_filename() else None)
+                cwd=os.path.dirname(self.in_file) if self.has_filename() else None,
+            )
         else:
-            raise NotImplementedError("no support for {} preprocessor".format(
-                self.preprocessor))
+            raise NotImplementedError(
+                "no support for {} preprocessor".format(self.preprocessor)
+            )
 
     def run(self):
         prep = self.get_preprocessor()
         prep.expand(self.in_text, os.path.basename(self.in_file))
         return ExincResult(
             prep.has_errors(),
-            prep.get_errors() if prep.has_errors() else prep.get_result())
+            prep.get_errors() if prep.has_errors() else prep.get_result(),
+        )
 
-    def compile(self, flags=cfg.DEFAULT_FLAGS, output_path=None,
-                cwd=os.curdir):
-
+    def compile(self, flags=cfg.DEFAULT_FLAGS, output_path=None, cwd=os.curdir):
         if isinstance(flags, str):
             flags = shlex.split(flags)
 
@@ -150,33 +175,40 @@ class Exinc():
             # PRE-COMPILATION STEP
             pre_params = params
             for path in self.paths:
-                pre_params += ['-I', path]
+                pre_params += ["-I", path]
 
             p = subprocess.Popen(
                 pre_params + [self.in_file if self.has_filename() else tmp_in_path],
                 cwd=cwd,
                 stdin=subprocess.PIPE,
-                stderr=subprocess.PIPE)
+                stderr=subprocess.PIPE,
+            )
             (_, perror) = p.communicate()
 
             if p.returncode != 0:
                 return ExincResult(
-                    True, "Errors in pre-compilation step.\n" + perror.decode("utf-8"))
+                    True, "Errors in pre-compilation step.\n" + perror.decode("utf-8")
+                )
 
         prep = self.run()
         if prep.has_errors:
             return prep
-        
+
         open(tmp_in_path, "w").write(prep.result)
         # COMPILATION STEP
         params += [] if output_path is None else ["-o", output_path]
         p = subprocess.Popen(
-            params + [tmp_in_path], cwd=cwd, stdin=subprocess.PIPE, stderr=subprocess.PIPE)
+            params + [tmp_in_path],
+            cwd=cwd,
+            stdin=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
         (_, perror) = p.communicate()
 
         if p.returncode != 0:
-            return ExincResult(True,
-                               "Error in expanded compilation step\n" + perror.decode('utf-8'))
+            return ExincResult(
+                True, "Error in expanded compilation step\n" + perror.decode("utf-8")
+            )
 
         return prep
 
@@ -217,11 +249,11 @@ def entry_point():
         paths=paths,
         input=in_text,
         filename=in_file if args.input else "root_file",
-        preprocessor="caide" if args.caide else "inliner")
+        preprocessor="caide" if args.caide else "inliner",
+    )
 
-    if (args.compile):
-        res = exinc.compile(cfg.DEFAULT_FLAGS + shlex.split(args.flags),
-                            args.compile)
+    if args.compile:
+        res = exinc.compile(cfg.DEFAULT_FLAGS + shlex.split(args.flags), args.compile)
     else:
         res = exinc.run()
 
@@ -234,9 +266,10 @@ def entry_point():
         else:
             if args.output is True:
                 in_basename = os.path.basename(in_file)
-                out_basename = in_basename.split(".")[:-1] + \
-                    ['pre'] + in_basename.split(".")[-1:]
-                out_basename = '.'.join(out_basename)
+                out_basename = (
+                    in_basename.split(".")[:-1] + ["pre"] + in_basename.split(".")[-1:]
+                )
+                out_basename = ".".join(out_basename)
                 out_file = os.path.join(os.path.dirname(in_file), out_basename)
             else:
                 out_file = args.output
